@@ -4,8 +4,8 @@ const https = require("https")
 const { error } = require("console")
 const app = express()
 const port = 3000
-const apiKey = "10ef64bceb30c2b5fa7591590393fc5a-us17"
-const audienceId = "5ab52e2a2f"
+const apiKey = process.env.MAILCHIMP_API_KEY
+const audienceId = process.env.MAILCHIMP_AUDIENCE_ID
 
 app.use(express.static("public"));
 app.use(express.json())
