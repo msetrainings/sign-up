@@ -1,7 +1,6 @@
 const express = require("express")
 const request = require("request")
 const https = require("https")
-const { error } = require("console")
 const app = express()
 const port = 3000
 const apiKey = process.env.MAILCHIMP_API_KEY
@@ -10,6 +9,7 @@ const audienceId = process.env.MAILCHIMP_AUDIENCE_ID
 app.use(express.static("public"));
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
+app.set('view engine', 'ejs');
 
 app.get("/", (req, res) => {
     let file = __dirname + "/public/signup.html"
@@ -44,20 +44,30 @@ app.post("/", (req,res) => {
 
         response.on("data", function(data) {
             let results = JSON.parse(data)
+            let responseData = {}
+            let errorMsg = ""
             if (results.error_count == 1) {
-                let failureFile = __dirname + "/public/failure.html"
-                let error = true
-                let errorMsg = results.errors[0].error_code
-                console.error(errorMsg)
-                res.sendFile(failureFile)
+                if (results.errors[0].error_code === "ERROR_CONTACT_EXISTS") {
+                    errorMsg = `${results.errors[0].email_address} is already a list member`
+                } else {
+                    errorMsg = results.errors[0].error
+                }
+                console.error("Error: " + errorMsg)
+                responseData = {
+                    message: "Error: Failed to subscribe",
+                    details: `${errorMsg}`
+                }
             }
             else if (results.total_created == 1 ) {
                 let status = results.new_members[0].status
                 let address = results.new_members[0].email_address
-                let successFile = __dirname + "/public/success.html"
                 console.log(status, address)
-                res.sendFile(successFile)
+                responseData = {
+                    message: "Successfully subscribed",
+                    details: `${address} successfully registred`
+                }
             }
+            res.render("response", {tplData: responseData})
         })
     })
     request.write(jsonData)
@@ -65,6 +75,7 @@ app.post("/", (req,res) => {
 
 })
 
+/*
 app.post("/failure", (req, res) => {
     res.redirect("/")
 })
@@ -72,6 +83,7 @@ app.post("/failure", (req, res) => {
 app.post("/success", (req, res) => {
     res.redirect("/")
 })
+*/
 
 app.listen(port, () => {
     console.log(`Server is listening on Port ${port}`)
